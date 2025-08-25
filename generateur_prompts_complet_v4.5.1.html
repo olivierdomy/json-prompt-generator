@@ -1,0 +1,214 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Générateur de Prompts – v4.5.1</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+    form { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    label { display: block; margin-top: 15px; font-weight: bold; }
+    input, textarea, select { width: 100%; padding: 8px; margin-top: 5px; }
+    button { margin-top: 20px; padding: 10px 15px; border: none; background: #0057a3; color: white; cursor: pointer; }
+    h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px; }
+    .instruction { border-left: 5px solid #0057a3; margin-top: 15px; padding-left: 10px; background: #fdfdfd; padding: 10px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+
+<h1>Générateur de Prompts – v4.5.1</h1>
+<form id="promptForm">
+
+  <h2>Comportement de l’IA</h2>
+  <div class="instruction">
+    <label for="reasoningLevel">Niveau de raisonnement :</label>
+    <select id="reasoningLevel">
+      <option value=""></option>
+      <option value="Automatique">Automatique – Analyse simple des faits</option>
+      <option value="Rapide">Rapide – Traitement direct avec logique élémentaire</option>
+      <option value="Élevé">Élevé – Analyse avec enchaînement logique structuré</option>
+      <option value="Expert (multi-étapes)">Expert (multi-étapes) – Raisonnement approfondi avec étapes intermédiaires</option>
+    </select>
+
+    <label for="factuality">Fiabilité des données :</label>
+    <select id="factuality">
+      <option value=""></option>
+      <option value="Créatif (peut inventer)">Créatif (peut inventer) – L'IA peut combler les manques</option>
+      <option value="Intermédiaire">Intermédiaire – Peut extrapoler légèrement</option>
+      <option value="Raisonné (aucune donnée non vérifiée)">Raisonné (aucune donnée non vérifiée)</option>
+      <option value="Strictement factuel">Strictement factuel – Aucune invention ou inférence</option>
+    </select>
+
+    <label for="compliance">Rigueur de conformité :</label>
+    <select id="compliance">
+      <option value=""></option>
+      <option value="Créatif">Créatif – Peut ignorer les règles pour innover</option>
+      <option value="Vérification légère">Vérification légère – Respect des grandes lignes</option>
+      <option value="Contrôle par règles">Contrôle par règles – Conformité stricte aux attentes</option>
+      <option value="Sans compromis réglementaire">Sans compromis réglementaire – Zéro tolérance au hors cadre</option>
+    </select>
+
+    <label for="depth">Profondeur d’analyse :</label>
+    <select id="depth">
+      <option value=""></option>
+      <option value="Superficielle">Superficielle – Vue synthétique</option>
+      <option value="Standard">Standard – Réponses équilibrées</option>
+      <option value="Approfondie">Approfondie – Avec justifications</option>
+      <option value="Exhaustive">Exhaustive – Tous les aspects en détail</option>
+    </select>
+
+    <label for="autonomy">🔁 Degré d’autonomie :</label>
+    <select id="autonomy">
+      <option value=""></option>
+      <option value="Aucune (répond uniquement sur faits)">Aucune</option>
+      <option value="Faible (suggestions ponctuelles)">Faible</option>
+      <option value="Modérée (initie des propositions argumentées)">Modérée</option>
+      <option value="Maximale (autorisé à reformuler, extrapoler ou combler les manques)">Maximale</option>
+    </select>
+
+    <label for="reformulation">🧠 Capacité de reformulation :</label>
+    <select id="reformulation">
+      <option value=""></option>
+      <option value="Texte brut uniquement">Texte brut uniquement</option>
+      <option value="Reformulation légère (lisibilité)">Légère</option>
+      <option value="Reformulation optimisée (impact, clarté)">Optimisée</option>
+      <option value="Libre (style éditorial, mise en récit, persuasion)">Libre</option>
+    </select>
+
+    <label for="uncertainty">🧩 Gestion des incertitudes :</label>
+    <select id="uncertainty">
+      <option value=""></option>
+      <option value="Ne pas répondre">Ne pas répondre</option>
+      <option value="Émettre des hypothèses (signalées)">Hypothèses</option>
+      <option value="Proposer des alternatives">Alternatives</option>
+      <option value="Remonter des questions à poser au client">Questions client</option>
+    </select>
+  </div>
+
+  <h2>📌 Métadonnées</h2>
+  <label>Nom du prompt :</label><input id="promptName" required>
+  <label>#Objectif :</label><textarea id="mainObjective" rows="2" required></textarea>
+  <label>#Contexte :</label><textarea id="context" rows="2"></textarea>
+  <label>#Rôle :</label><input id="globalRole">
+  <h3>🖼️ Image par défaut (optionnelle)</h3>
+  <label>Concept de l’image :</label><input id="imageConcept">
+  <label>Fit :</label><input id="imageFit" placeholder="ex: cover_or_contain_preserve_crop">
+  <label>Style artistique :</label><input id="imageStyle" placeholder="ex: BD ligne claire">
+
+  <h2>📋 Instructions</h2>
+  <div id="instructionsContainer"></div>
+  <button type="button" onclick="addInstruction()">+ Ajouter une instruction</button>
+  <button type="submit">✅ Générer JSON</button>
+  <button type="button" onclick="downloadJSON()">📥 Télécharger JSON</button>
+  <button type="button" onclick="downloadTXT()">📄 Télécharger TXT</button>
+</form>
+
+<h2>🧾 Aperçu JSON</h2>
+<pre id="jsonPreview"></pre>
+
+<script>
+let instructionIndex = 0;
+let latestJson = "";
+
+function addInstruction() {
+  instructionIndex++;
+  const c = document.getElementById("instructionsContainer");
+  const d = document.createElement("div");
+  d.className = "instruction";
+  d.innerHTML = `
+    <label>Action ${instructionIndex} :</label><textarea id="action${instructionIndex}"></textarea>
+    <label>Format :</label><input id="format${instructionIndex}">
+    <label>Exemple :</label><textarea id="example${instructionIndex}"></textarea>
+    <label>Vérifications :</label><textarea id="verif${instructionIndex}"></textarea>
+    <label><input type="checkbox" class="generateImage"> Générer une image IA pour cette action</label>
+  `;
+  c.appendChild(d);
+}
+
+document.getElementById("promptForm").addEventListener("submit", function (e) {
+  e.preventDefault();
+  const ai_profile = {
+    reasoning_level: document.getElementById("reasoningLevel").value,
+    factuality: document.getElementById("factuality").value,
+    compliance: document.getElementById("compliance").value,
+    depth: document.getElementById("depth").value,
+    autonomy: document.getElementById("autonomy").value,
+    reformulation: document.getElementById("reformulation").value,
+    uncertainty: document.getElementById("uncertainty").value
+  };
+  const metadata = {
+    prompt_name: document.getElementById("promptName").value,
+    objectifPrincipal: document.getElementById("mainObjective").value,
+    contexte: document.getElementById("context").value,
+    role: document.getElementById("globalRole").value,
+    image_policy: {
+      concept: document.getElementById("imageConcept").value,
+      fit: document.getElementById("imageFit").value,
+      style_hint: document.getElementById("imageStyle").value
+    }
+  };
+  const timeline = [];
+  for (let i = 1; i <= instructionIndex; i++) {
+    const generate = document.getElementsByClassName("generateImage")[i - 1]?.checked || false;
+    timeline.push({
+      sequence: i,
+      action: document.getElementById("action" + i)?.value || "",
+      format: document.getElementById("format" + i)?.value || "",
+      exemple: document.getElementById("example" + i)?.value || "",
+      verifications: document.getElementById("verif" + i)?.value || "",
+      generate_image: generate
+    });
+  }
+  const output = { ai_profile, metadata, timeline };
+  latestJson = JSON.stringify(output, null, 2);
+  document.getElementById("jsonPreview").textContent = latestJson;
+});
+
+function downloadJSON() {
+  if (!latestJson) return alert("Rien à sauvegarder.");
+  const blob = new Blob([latestJson], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "prompt-" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+}
+
+function downloadTXT() {
+  if (!latestJson) return alert("Génère d'abord un prompt.");
+  const obj = JSON.parse(latestJson);
+  let txt = `🎯 Objectif : ${obj.metadata.objectifPrincipal}
+`;
+  txt += `📂 Contexte : ${obj.metadata.contexte}
+`;
+  txt += `👤 Rôle : ${obj.metadata.role}
+`;
+  txt += `🖼️ Image : ${obj.metadata.image_policy.concept} | ${obj.metadata.image_policy.fit} | ${obj.metadata.image_policy.style_hint}
+`;
+  txt += `🤖 Comportement IA :
+`;
+  for (const [k, v] of Object.entries(obj.ai_profile)) {
+    txt += `   - ${k} : ${v}
+`;
+  }
+  txt += `
+📋 Instructions :
+`;
+  for (const s of obj.timeline) {
+    txt += `
+🔹 ${s.sequence}. ${s.action}
+   ➤ Format : ${s.format}
+   ➤ Exemple : ${s.exemple}
+   ➤ Vérifications : ${s.verifications}
+   ➤ Image IA : ${s.generate_image ? "Oui" : "Non"}
+`;
+  }
+  const blob = new Blob([txt], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "prompt-" + new Date().toISOString().slice(0,10) + ".txt";
+  a.click();
+}
+</script>
+
+</body>
+</html>
