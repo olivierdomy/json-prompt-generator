@@ -1,9 +1,0 @@
-form{background:var(--card); padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,.06)}
-label{display:block; margin-top:10px; font-weight:600}
-input,textarea,select{width:100%; padding:8px; margin-top:6px; border:1px solid var(--border); border-radius:6px; background:#fff}
-textarea{resize:vertical}
-button{margin-top:14px; padding:10px 14px; border:none; background:var(--brand); color:#fff; border-radius:8px; cursor:pointer}
-.panel{background:var(--card); padding:12px; border:1px solid var(--border); border-radius:8px; margin-top:10px}
-.row{display:flex; gap:16px; flex-wrap:wrap}
-.col{flex:1 1 260px; min-width:260px}
-.inline{display:inline-block; margin-right:14px; font-weight:400}
