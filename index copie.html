@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Générateur de Prompts – v5</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/form.css">
+</head>
+<body>
+  <div class="copyright">© Olivier DOMY – Août 2025</div>
+  <h1>Générateur de Prompts – v5</h1>
+
+  <form id="promptForm">
+    <div class="topbar">
+      <label>Nom du prompt</label>
+      <input id="promptName" placeholder="AVV_IA_Generative" required />
+    </div>
+
+    <div id="featureToggles" class="panel">
+      <label class="inline"><input type="checkbox" id="enablePowerPoint"> Activer PowerPoint</label>
+      <label class="inline"><input type="checkbox" id="enableImages"> Activer Génération Image</label>
+    </div>
+
+    <div id="pptOptions" class="panel hidden">
+      <h3>🧩 Option PowerPoint</h3>
+      <label>Layout par défaut (layout_id)</label>
+      <input id="defaultLayoutId" placeholder="S03_TitleBodyPictureRight" />
+      <label>Manifeste (JSON complet)</label>
+      <textarea id="manifestInput" rows="6"></textarea>
+      <button type="button" id="parseManifestBtn">Analyser le manifeste</button>
+      <div id="manifestSummary" class="panel hidden"><div id="manifestInfo" class="muted"></div></div>
+    </div>
+
+    <div id="imageDefaults" class="panel hidden">
+      <h3>🖼️ Image – options globales</h3>
+      <div class="row">
+        <div class="col"><label>Concept</label><input id="imageConcept"></div>
+        <div class="col"><label>Style</label>
+          <select id="imageStyleKey">
+            <option value=""></option>
+            <option value="ligne_claire">Ligne claire</option>
+            <option value="flat">Flat</option>
+            <option value="isometrique">Isométrique</option>
+            <option value="lowpoly3d">3D low-poly</option>
+            <option value="blueprint">Blueprint</option>
+            <option value="doodle">Doodle</option>
+            <option value="photostudio">Photo studio</option>
+            <option value="pixelart">Pixel art</option>
+          </select>
+        </div>
+        <div class="col"><label>Style libre</label><input id="imageStyle"></div>
+      </div>
+      <div class="row">
+        <div class="col"><label>Fit</label><select id="imageFitSel"><option>contain</option><option>cover</option><option>fill</option></select></div>
+        <div class="col"><label>Fond</label><select id="imageBgSel"><option value="transparent">Transparent</option><option value="opaque">Opaque</option></select></div>
+        <div class="col"><label>Mode taille</label><select id="imageSizeMode"><option value="auto">Auto</option><option value="custom">Custom</option></select></div>
+        <div class="col"><label>Largeur×Hauteur (px)</label><input id="imageSizeWH" placeholder="1212x942"></div>
+      </div>
+      <label class="inline"><input type="checkbox" id="imageNegStd" checked> Négatifs standard</label>
+    </div>
+
+    <h2>Comportement de l’IA</h2>
+    <div id="aiBehaviorGrid" class="panel"></div>
+
+    <h2>📌 Métadonnées</h2>
+    <label>#Objectif</label><textarea id="mainObjective" rows="2"></textarea>
+    <label>#Contexte</label><textarea id="context" rows="2"></textarea>
+    <label>#Rôle</label><input id="globalRole" />
+
+    <h2>📋 Instructions</h2>
+    <div id="instructionsContainer"></div>
+    <button type="button" id="addInstructionBtn">+ Ajouter une instruction</button>
+
+    <div class="row" style="align-items:center">
+      <button type="submit" id="generateBtn">✅ Générer JSON</button>
+      <button type="button" id="copyJsonBtn" disabled>📋 Copier JSON</button>
+      <button type="button" id="downloadJsonBtn">📥 Télécharger JSON</button>
+      <button type="button" id="downloadTxtBtn">📄 Télécharger TXT</button>
+    </div>
+  </form>
+
+  <h2>🧾 Aperçu JSON</h2>
+  <pre id="jsonPreview"></pre>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

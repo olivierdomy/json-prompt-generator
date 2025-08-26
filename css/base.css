@@ -1,0 +1,7 @@
+:root { --brand:#0057a3; --bg:#f6f7fb; --card:#fff; --muted:#666; --border:#ddd; }
+*{box-sizing:border-box}
+body{font-family:Arial, sans-serif; margin:20px; background:var(--bg); color:#111}
+h1{margin:0 0 6px}
+.muted{color:var(--muted); font-size:12px}
+.hidden{display:none}
+.copyright{position:fixed; top:10px; right:14px; font-size:12px; color:#444}
