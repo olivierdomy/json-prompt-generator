@@ -24,6 +24,9 @@ Aucune dépendance, fonctionne en local.
 14. Exemples
 
 ---
+##00 - Generateur de prompt 4.9
+Ce fichier html est une version autoportante sur un seul fichier du générateur de prompt.
+Il est moins complet que le programme modulaire mais est simple à utiliser.
 
 ## 1) Prérequis et lancement
 
