@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Générateur de Prompts – v5</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/form.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Crect width='32' height='32' rx='6' ry='6' fill='%230A66C2'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div class="copyright">© Olivier DOMY – Août 2025</div>
+  <h1>Générateur de Prompts – v5</h1>
+
+  <form id="promptForm" autocomplete="off">
+    <!-- Zone des problèmes (injectée par validate.js) -->
+
+    <!-- Nom du prompt -->
+    <div class="panel">
+      <label for="promptName">Nom du prompt</label>
+      <input id="promptName" placeholder="Nom interne du prompt">
+    </div>
+
+    <!-- Toggles globaux -->
+    <div id="featureToggles" class="panel">
+      <label class="inline"><input type="checkbox" id="enablePowerPoint"> Activer PowerPoint</label>
+      <label class="inline"><input type="checkbox" id="enableImages"> Activer Génération Image</label>
+    </div>
+
+    <!-- Comportement IA -->
+    <div class="panel">
+      <h2>Comportement de l’IA</h2>
+      <div id="aiBehaviorGrid" class="ai-grid"><!-- rendu dynamique --></div>
+    </div>
+
+    <!-- Métadonnées -->
+    <div class="panel">
+      <h2>Métadonnées</h2>
+      <div class="row">
+        <div class="col">
+          <label for="objectifPrincipal">Objectif</label>
+          <textarea id="objectifPrincipal" rows="3" placeholder="Objectif principal"></textarea>
+        </div>
+        <div class="col">
+          <label for="contexte">Contexte</label>
+          <textarea id="contexte" rows="3" placeholder="Contexte"></textarea>
+        </div>
+        <div class="col">
+          <label for="role">Rôle</label>
+          <input id="role" placeholder="Ex. Bid Manager senior">
+        </div>
+      </div>
+    </div>
+
+    <!-- Option PowerPoint -->
+    <div id="pptOptions" class="panel hidden">
+      <h2>Option PowerPoint</h2>
+      <div class="row">
+        <div class="col">
+          <label for="defaultLayoutId">Layout par défaut (layout_id)</label>
+          <input id="defaultLayoutId" placeholder="S03_TitleBodyPictureRight">
+        </div>
+      </div>
+      <label for="manifestInput">Manifeste (JSON complet)</label>
+      <textarea id="manifestInput" rows="10" spellcheck="false" placeholder="{ ... }"></textarea>
+      <button type="button" id="parseManifestBtn">Analyser le manifeste</button>
+      <div id="manifestSummary" class="panel" style="margin-top:12px"><!-- résumé manifest --></div>
+    </div>
+
+    <!-- Paramètres d’image globaux -->
+    <div id="imageDefaults" class="panel hidden">
+      <h2>Paramètres d’image – Globaux</h2>
+      <div class="row">
+        <div class="col">
+          <label for="imageConcept">Concept</label>
+          <textarea id="imageConcept" rows="2" placeholder="Ex. Ligne claire humoristique, cohérente avec le slide..."></textarea>
+        </div>
+        <div class="col">
+          <label for="imageFit">Fit</label>
+          <select id="imageFit">
+            <option value="">Par défaut</option>
+            <option value="contain">contain</option>
+            <option value="cover">cover</option>
+            <option value="fill">fill</option>
+          </select>
+        </div>
+        <div class="col">
+          <label for="imageStyleKey">Style</label>
+          <select id="imageStyleKey">
+            <option value="">Aucun</option>
+            <option value="ligne_claire">Ligne claire</option>
+            <option value="flat">Flat</option>
+            <option value="isometrique">Isométrique</option>
+            <option value="lowpoly3d">3D low-poly</option>
+            <option value="blueprint">Blueprint</option>
+            <option value="doodle">Doodle</option>
+            <option value="photostudio">Photo studio</option>
+            <option value="pixelart">Pixel art</option>
+            <option value="comic_noir">Comic noir</option>
+            <option value="infographic">Infographie</option>
+            <option value="vector_poster">Affiche vectorielle</option>
+            <option value="watercolor">Aquarelle</option>
+          </select>
+        </div>
+        <div class="col">
+          <label for="imageStyleHint">Style hint</label>
+          <input id="imageStyleHint" placeholder="Notes libres de style">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label for="imageBackground">Fond</label>
+          <select id="imageBackground">
+            <option value="">Par défaut</option>
+            <option value="transparent">transparent</option>
+            <option value="opaque">opaque</option>
+          </select>
+        </div>
+        <div class="col">
+          <label for="imageDPI">DPI</label>
+          <input id="imageDPI" type="number" min="72" max="600" step="1" placeholder="300">
+        </div>
+        <div class="col">
+          <label for="imageMinSize">Taille min (WxH)</label>
+          <input id="imageMinSize" placeholder="512x512">
+        </div>
+        <div class="col">
+          <label for="imageMaxSize">Taille max (WxH)</label>
+          <input id="imageMaxSize" placeholder="2048x2048">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label for="imageSizeMode">Taille</label>
+          <select id="imageSizeMode">
+            <option value="">auto</option>
+            <option value="custom">custom</option>
+          </select>
+        </div>
+        <div class="col">
+          <label for="imageDefaultSize">Taille par défaut (WxH)</label>
+          <input id="imageDefaultSize" placeholder="ex: 1024x768">
+        </div>
+        <div class="col" style="display:flex; align-items:flex-end">
+          <label class="inline"><input type="checkbox" id="imageNegativeDefault" checked> Négatifs standard</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="panel">
+      <h2>Timeline</h2>
+      <button type="button" id="addInstructionBtn">+ Ajouter une instruction</button>
+      <div id="instructionsContainer" style="margin-top:10px"></div>
+    </div>
+
+    <!-- Modèles sauvegardés -->
+    <div class="panel">
+      <h2>Modèles sauvegardés</h2>
+      <div class="row">
+        <div class="col">
+          <label for="presetName">Nom du modèle</label>
+          <input id="presetName" placeholder="Ex. AVV – IA Générative v1">
+          <div class="row" style="gap:8px; margin-top:6px">
+            <button type="button" id="savePresetBtn">Sauvegarder comme nouveau</button>
+            <select id="presetList" style="min-width:260px"></select>
+            <button type="button" id="updatePresetBtn" disabled>Mettre à jour</button>
+            <button type="button" id="loadPresetBtn" disabled>Charger</button>
+            <button type="button" id="deletePresetBtn" disabled>Supprimer</button>
+          </div>
+          <div class="row" style="gap:8px; margin-top:6px">
+            <button type="button" id="exportPresetBtn" disabled>Exporter preset</button>
+            <input id="importPresetFile" type="file" accept="application/json" class="hidden">
+            <button type="button" id="importPresetBtn">Importer preset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historique des versions -->
+    <div class="panel">
+      <h2>Historique des versions</h2>
+      <div class="row" style="gap:8px">
+        <button type="button" id="historyRefreshBtn">Rafraîchir</button>
+        <button type="button" id="historyClearBtn">Vider</button>
+      </div>
+      <div id="historyList" style="margin-top:10px"></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="row">
+      <button id="generateBtn" type="submit">Générer JSON</button>
+      <button id="copyJsonBtn" type="button" disabled>Copier JSON</button>
+      <button id="downloadJsonBtn" type="button">Télécharger JSON</button>
+      <button id="downloadTxtBtn" type="button">Télécharger TXT</button>
+      <input id="importJsonFile" type="file" accept="application/json" class="hidden">
+      <button id="importJsonBtn" type="button">Importer JSON</button>
+    </div>
+
+    <!-- Aperçu JSON -->
+    <div id="jsonPreview" class="panel" style="white-space:pre; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px;"></div>
+  </form>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

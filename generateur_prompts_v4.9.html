@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Générateur de Prompts – v4.8</title>
+  <style>
+    :root { --brand:#0057a3; --bg:#f4f4f4; --card:#ffffff; --muted:#666; --border:#ddd; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: var(--bg); }
+    form { background: var(--card); padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.06); position: relative; }
+    label { display: block; margin-top: 12px; font-weight: bold; }
+    input, textarea, select { width: 100%; padding: 8px; margin-top: 5px; }
+    button { margin-top: 16px; padding: 10px 15px; border: none; background: var(--brand); color: white; cursor: pointer; border-radius: 6px; }
+    h1 { margin: 0 0 8px 0; }
+    h2 { border-bottom: 1px solid #ccc; padding-bottom: 6px; margin-top: 22px; }
+    .muted { color: var(--muted); font-size: 12px; }
+    .hidden { display: none; }
+    .panel { background: var(--card); padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-top: 10px; }
+    .instruction { border-left: 5px solid var(--brand); margin-top: 15px; padding-left: 10px; background: #fdfdfd; padding: 10px; border-radius: 5px; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .col { flex: 1 1 260px; }
+    .small { font-size: 12px; }
+    pre { white-space: pre-wrap; background: #0d1117; color: #c9d1d9; padding: 12px; border-radius: 8px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+    th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; font-size: 12px; }
+    th { background: #f0f0f0; }
+    .inline { display: inline-block; margin-right: 14px; }
+    .topbar { display:flex; align-items:flex-end; gap:16px; }
+    .topbar .grow { flex:1; }
+    .copyright { position:absolute; top:10px; right:14px; font-size:12px; color:#444; }
+    .badge { background:#eef6ff; color:#084b83; border:1px solid #bcdcff; padding:2px 6px; border-radius:10px; font-size:11px; }
+    .ia-grid { display:grid; grid-template-columns: repeat(2, minmax(240px,1fr)); gap: 14px 16px; }
+    @media (min-width: 1100px){ .ia-grid { grid-template-columns: repeat(3, minmax(240px,1fr)); } }
+  </style>
+</head>
+<body>
+
+<h1>Générateur de Prompts – v4.8 <span class="badge">Form UI</span></h1>
+
+<form id="promptForm">
+  <div class="copyright">© Olivier DOMY – Août 2025</div>
+
+  <div class="topbar">
+    <div class="grow">
+      <label>Nom du prompt :</label>
+      <input id="promptName" placeholder="ex: AVV_IA_Generative" required>
+    </div>
+  </div>
+
+  <div class="panel" id="featureToggles">
+    <label class="inline"><input type="checkbox" id="enablePowerPoint"> Activer PowerPoint</label>
+    <label class="inline"><input type="checkbox" id="enableImages"> Activer Génération Image</label>
+  </div>
+
+  <div id="pptOptions" class="panel hidden">
+    <h3>🧩 Option PowerPoint</h3>
+    <div class="row">
+      <div class="col">
+        <label>Layout par défaut (layout_id) :</label>
+        <input id="defaultLayoutId" placeholder="ex: S03_TitleBodyPictureRight">
+        <p class="muted small">Le fichier PPTX et le manifeste seront ajoutés manuellement côté IA.</p>
+      </div>
+    </div>
+    <label>Manifeste (collez le JSON complet) :</label>
+    <textarea id="manifestInput" rows="6" placeholder='{"template_manifest":{...}}'></textarea>
+    <div class="row">
+      <button type="button" id="parseManifestBtn">Analyser le manifeste</button>
+    </div>
+    <div id="manifestSummary" class="panel hidden">
+      <div id="manifestInfo" class="small"></div>
+    </div>
+  </div>
+
+  <div id="imageDefaults" class="panel hidden">
+    <h3>🖼️ Image – options globales</h3>
+    <div class="row">
+      <div class="col">
+        <label>Concept (scène) :</label><input id="imageConcept" placeholder="ex: équipe AVV, robot assistant, écran de KPI">
+      </div>
+      <div class="col">
+        <label>Style :</label>
+        <select id="imageStyleKey">
+          <option value=""></option>
+          <option value="ligne_claire">Ligne claire (franco-belge)</option>
+          <option value="flat">Flat illustration</option>
+          <option value="isometrique">Isométrique vectoriel</option>
+          <option value="lowpoly3d">3D low-poly</option>
+          <option value="blueprint">Blueprint</option>
+          <option value="doodle">Doodle / Whiteboard</option>
+          <option value="photostudio">Photo réaliste soft-studio</option>
+          <option value="pixelart">Pixel art</option>
+        </select>
+      </div>
+      <div class="col">
+        <label>Style libre (optionnel) :</label><input id="imageStyle" placeholder="ex: lignes nettes, aplats…">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label>Fit :</label>
+        <select id="imageFitSel">
+          <option value="contain" selected>contain</option>
+          <option value="cover">cover</option>
+          <option value="fill">fill</option>
+        </select>
+      </div>
+      <div class="col">
+        <label>Fond :</label>
+        <select id="imageBgSel">
+          <option value="transparent" selected>Transparent</option>
+          <option value="opaque">Opaque (blanc)</option>
+        </select>
+      </div>
+      <div class="col">
+        <label>Mode taille :</label>
+        <select id="imageSizeMode">
+          <option value="auto" selected>Auto depuis placeholder</option>
+          <option value="custom">Personnalisée</option>
+        </select>
+      </div>
+      <div class="col">
+        <label>Largeur × Hauteur (px) :</label>
+        <input id="imageSizeWH" placeholder="ex: 1212x942">
+        <div class="small muted">Ignoré si mode = Auto</div>
+      </div>
+    </div>
+    <label class="inline"><input type="checkbox" id="imageNegStd" checked> Négatifs standard (pas de photo/grain/texte/logos/licences)</label>
+  </div>
+
+  <h2>Comportement de l’IA</h2>
+  <div class="panel ia-grid" id="iaBehavior">
+    <div>
+      <label for="reasoningLevel">Niveau de raisonnement :</label>
+      <select id="reasoningLevel">
+        <option value=""></option>
+        <option value="Automatique">Automatique – Analyse simple des faits</option>
+        <option value="Rapide">Rapide – Traitement direct</option>
+        <option value="Élevé">Élevé – Logique structurée</option>
+        <option value="Expert (multi-étapes)">Expert (multi-étapes)</option>
+      </select>
+    </div>
+    <div>
+      <label for="factuality">Fiabilité des données :</label>
+      <select id="factuality">
+        <option value=""></option>
+        <option value="Créatif (peut inventer)">Créatif (peut inventer)</option>
+        <option value="Intermédiaire">Intermédiaire</option>
+        <option value="Raisonné (aucune donnée non vérifiée)">Raisonné (aucune donnée non vérifiée)</option>
+        <option value="Strictement factuel">Strictement factuel</option>
+      </select>
+    </div>
+    <div>
+      <label for="compliance">Rigueur de conformité :</label>
+      <select id="compliance">
+        <option value=""></option>
+        <option value="Créatif">Créatif</option>
+        <option value="Vérification légère">Vérification légère</option>
+        <option value="Contrôle par règles">Contrôle par règles</option>
+        <option value="Sans compromis réglementaire">Sans compromis réglementaire</option>
+      </select>
+    </div>
+    <div>
+      <label for="depth">Profondeur d’analyse :</label>
+      <select id="depth">
+        <option value=""></option>
+        <option value="Superficielle">Superficielle</option>
+        <option value="Standard">Standard</option>
+        <option value="Approfondie">Approfondie</option>
+        <option value="Exhaustive">Exhaustive</option>
+      </select>
+    </div>
+    <div>
+      <label for="autonomy">🔁 Degré d’autonomie :</label>
+      <select id="autonomy">
+        <option value=""></option>
+        <option value="Aucune (répond uniquement sur faits)">Aucune</option>
+        <option value="Faible (suggestions ponctuelles)">Faible</option>
+        <option value="Modérée (initie des propositions argumentées)">Modérée</option>
+        <option value="Maximale (autorisé à reformuler)">Maximale</option>
+      </select>
+    </div>
+    <div>
+      <label for="reformulation">🧠 Reformulation :</label>
+      <select id="reformulation">
+        <option value=""></option>
+        <option value="Texte brut uniquement">Texte brut</option>
+        <option value="Reformulation légère (lisibilité)">Légère</option>
+        <option value="Reformulation optimisée (impact, clarté)">Optimisée</option>
+        <option value="Libre (style éditorial)">Libre</option>
+      </select>
+    </div>
+    <div>
+      <label for="uncertainty">🧩 Gestion des incertitudes :</label>
+      <select id="uncertainty">
+        <option value=""></option>
+        <option value="Ne pas répondre">Ne pas répondre</option>
+        <option value="Émettre des hypothèses (signalées)">Hypothèses</option>
+        <option value="Proposer des alternatives">Alternatives</option>
+        <option value="Remonter des questions à poser au client">Questions client</option>
+      </select>
+    </div>
+  </div>
+
+  <h2>📌 Métadonnées</h2>
+  <label>#Objectif :</label><textarea id="mainObjective" rows="2" required></textarea>
+  <label>#Contexte :</label><textarea id="context" rows="2"></textarea>
+  <label>#Rôle :</label><input id="globalRole">
+
+  <h2>📋 Instructions</h2>
+  <div id="instructionsContainer"></div>
+  <button type="button" onclick="addInstruction()">+ Ajouter une instruction</button>
+  <button type="submit">✅ Générer JSON</button>
+  <button type="button" id="copyJsonBtn">📋 Copier JSON</button><span id="copyStatus" class="muted small"></span>
+  <button type="button" onclick="downloadJSON()">📥 Télécharger JSON</button>
+  <button type="button" onclick="downloadTXT()">📄 Télécharger TXT</button>
+</form>
+
+<h2>🧾 Aperçu JSON</h2>
+<pre id="jsonPreview"></pre>
+
+<script>
+const STYLE_PRESETS = {
+  ligne_claire: { label: "Ligne claire (franco-belge)", tags: ["ligne claire","aplats de couleurs","contours noirs nets","sans trame"], negative: "photo réaliste, grain, trame, watermark, texte, logos, personnages licenciés", style_hint: "Ligne claire franco-belge, aplats, contours noirs" },
+  flat: { label: "Flat illustration", tags: ["flat illustration","formes géométriques","ombres longues légères"], negative: "textures réalistes, photographique, watermark, texte, logos", style_hint: "Flat, aplats, ombres longues" },
+  isometrique: { label: "Isométrique vectoriel", tags: ["isometric","vector","crisp edges","30° angle"], negative: "perspective réaliste, textures, photo, watermark, texte, logos", style_hint: "Isométrique vectoriel net" },
+  lowpoly3d: { label: "3D low-poly", tags: ["clean CGI","low-poly","soft studio light","no texture"], negative: "photoreal noisy, detailed textures, watermark, texte, logos", style_hint: "3D low-poly studio clean" },
+  blueprint: { label: "Blueprint", tags: ["blueprint","white lines on blue","technical diagram"], negative: "photo, textures papier, watermark, texte lisible, logos", style_hint: "Plan technique bleu" },
+  doodle: { label: "Doodle / Whiteboard", tags: ["whiteboard","marker strokes","hand-drawn clean"], negative: "ombres réalistes, photo, watermark, texte lisible, logos", style_hint: "Tableau blanc feutre" },
+  photostudio: { label: "Photo réaliste soft-studio", tags: ["soft studio light","clean background","realistic"], negative: "grain fort, watermark, texte, logos", style_hint: "Photo studio douce" },
+  pixelart: { label: "Pixel art", tags: ["pixel art","8-bit","limited palette"], negative: "photo, dégradés lisses, watermark, texte, logos", style_hint: "Pixel art rétro" }
+};
+
+let instructionIndex = 0;
+let latestJson = "";
+let manifestData = null;
+
+function $(id){ return document.getElementById(id); }
+function show(el, visible){ el.classList.toggle('hidden', !visible); }
+
+$('enablePowerPoint').addEventListener('change', () => {
+  const enabled = $('enablePowerPoint').checked;
+  show($('pptOptions'), enabled);
+  for (let i=1; i<=instructionIndex; i++){
+    const pp = $('pptBlock'+i);
+    if (pp) show(pp, enabled);
+  }
+});
+
+$('enableImages').addEventListener('change', () => {
+  const enabled = $('enableImages').checked;
+  show($('imageDefaults'), enabled);
+  for (let i=1; i<=instructionIndex; i++){
+    const chk = $('genImg'+i);
+    const imgBlock = $('imgBlock'+i);
+    if (!chk || !imgBlock) continue;
+    chk.disabled = !enabled;
+    if (!enabled){ chk.checked = false; }
+    show(imgBlock, enabled && chk.checked);
+  }
+});
+
+$('parseManifestBtn').addEventListener('click', () => {
+  try{
+    const raw = $('manifestInput').value.trim();
+    if(!raw){ manifestData = null; $('manifestInfo').innerHTML = '<em>Aucun manifeste fourni.</em>'; show($('manifestSummary'), true); return; }
+    const obj = JSON.parse(raw);
+    manifestData = obj.template_manifest ? obj : { template_manifest: obj };
+    const tm = manifestData.template_manifest;
+    let html = `<b>Fichier:</b> ${tm.file || '(non spécifié)'} &nbsp; <b>Taille slide (in):</b> ${tm.slide_width_in || '?'} x ${tm.slide_height_in || '?'}<br>`;
+    html += `<table><tr><th>Layout</th><th>Aliases</th><th>Placeholders (idx:type:name)</th></tr>`;
+    for (const [lname, entry] of Object.entries(tm.layouts||{})){
+      const al = entry.aliases || {};
+      const aliasTxt = ['title','subtitle','body','picture'].map(k => {
+        const v = al[k];
+        if(!v) return `<span>${k}: -</span>`;
+        const tn = typeof v.type === 'object' ? (v.type.name || '') : (v.type || '');
+        return `<span>${k}: idx ${v.idx} (${tn})</span>`;
+      }).join(' &nbsp; ');
+      const phs = (entry.placeholders||[]).map(p => `${p.idx}:${(p.type && (p.type.name||p.type))||''}:${p.name||''}`).join(', ');
+      html += `<tr><td>${lname}</td><td>${aliasTxt}</td><td class="small">${phs}</td></tr>`;
+    }
+    html += `</table>`;
+    $('manifestInfo').innerHTML = html;
+    show($('manifestSummary'), true);
+    for (let i=1; i<=instructionIndex; i++){
+      refreshLayoutOptions(i);
+      refreshAliasHints(i);
+    }
+  }catch(e){
+    alert("Manifeste invalide : " + e.message);
+  }
+});
+
+function refreshLayoutOptions(i){
+  const sel = $('layoutId'+i);
+  if(!sel) return;
+  const tm = manifestData && manifestData.template_manifest;
+  const current = sel.value;
+  sel.innerHTML = '';
+  const optBlank = document.createElement('option'); optBlank.value=''; optBlank.textContent=''; sel.appendChild(optBlank);
+  if (tm && tm.layouts){
+    for (const lname of Object.keys(tm.layouts)){
+      const o = document.createElement('option');
+      o.value = lname; o.textContent = lname;
+      sel.appendChild(o);
+    }
+  }
+  sel.value = current;
+}
+
+function refreshAliasHints(i){
+  const layoutSel = $('layoutId'+i);
+  const lname = layoutSel && layoutSel.value ? layoutSel.value : ($('defaultLayoutId').value || '');
+  const container = $('aliasHints'+i);
+  if(!container) return;
+  const tm = manifestData && manifestData.template_manifest;
+  if(!(tm && tm.layouts && tm.layouts[lname])){
+    container.innerHTML = '<span class="muted small">Alias indisponibles (sélectionnez un layout ou renseignez le manifeste).</span>';
+    return;
+  }
+  const al = tm.layouts[lname].aliases || {};
+  function aliasLine(key){
+    const v = al[key];
+    if(!v) return `${key}: -`;
+    const tn = typeof v.type === 'object' ? (v.type.name || '') : (v.type || '');
+    return `${key}: name="${v.name||''}" idx=${v.idx} type=${tn}`;
+  }
+  container.innerHTML = `<div class="small muted">${aliasLine('title')} | ${aliasLine('body')} | ${aliasLine('picture')}</div>`;
+}
+
+function computeAutoSize(layoutName, picName, picAlias, picIdx){
+  const tm = manifestData && manifestData.template_manifest;
+  if(!(tm && tm.layouts && tm.layouts[layoutName])) return null;
+  const entry = tm.layouts[layoutName];
+  let ph = (entry.placeholders||[]).find(p => p.name === picName);
+  if(!ph && picAlias){
+    const al = entry.aliases && entry.aliases[picAlias];
+    if(al){ ph = (entry.placeholders||[]).find(p => p.idx === al.idx); }
+  }
+  if(!ph && (picIdx || picIdx === 0)){
+    ph = (entry.placeholders||[]).find(p => p.idx === picIdx);
+  }
+  if(!ph || !ph.bbox) return null;
+  const wpx = Math.max(300, Math.round(parseFloat(ph.bbox.width_in) * 300));
+  const hpx = Math.max(300, Math.round(parseFloat(ph.bbox.height_in) * 300));
+  return `${wpx}x${hpx}`;
+}
+
+function addInstruction() {
+  instructionIndex++;
+  const c = $('instructionsContainer');
+  const i = instructionIndex;
+  const d = document.createElement('div');
+  d.className = 'instruction';
+  d.innerHTML = `
+    <label>Action ${i} :</label><textarea id="action${i}" rows="2"></textarea>
+    <label>Format :</label><input id="format${i}">
+    <label>Exemple :</label><textarea id="example${i}" rows="2"></textarea>
+    <label>Vérifications :</label><textarea id="verif${i}" rows="2"></textarea>
+    <label class="inline"><input type="checkbox" class="generateImage" id="genImg${i}"> Générer une image IA pour cette action</label>
+    <div id="imgBlock${i}" class="panel hidden">
+      <h4>🎨 Image – options de la séquence</h4>
+      <div class="row">
+        <div class="col">
+          <label>Style (override) :</label>
+          <select id="imgStyleKey${i}">
+            <option value="">Hériter des métadonnées</option>
+            <option value="ligne_claire">Ligne claire (franco-belge)</option>
+            <option value="flat">Flat illustration</option>
+            <option value="isometrique">Isométrique vectoriel</option>
+            <option value="lowpoly3d">3D low-poly</option>
+            <option value="blueprint">Blueprint</option>
+            <option value="doodle">Doodle / Whiteboard</option>
+            <option value="photostudio">Photo réaliste soft-studio</option>
+            <option value="pixelart">Pixel art</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>Fit (override) :</label>
+          <select id="imgFit${i}">
+            <option value="">Hériter</option>
+            <option value="contain">contain</option>
+            <option value="cover">cover</option>
+            <option value="fill">fill</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>Fond (override) :</label>
+          <select id="imgBg${i}">
+            <option value="">Hériter</option>
+            <option value="transparent">Transparent</option>
+            <option value="opaque">Opaque</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>Mode taille :</label>
+          <select id="imgSizeMode${i}">
+            <option value="auto" selected>Auto depuis placeholder</option>
+            <option value="custom">Personnalisée</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>Largeur × Hauteur (px) :</label>
+          <input id="imgSizeWH${i}" placeholder="ex: 1212x942">
+          <div class="small muted">Ignoré si Auto</div>
+        </div>
+      </div>
+      <label>Prompt de scène :</label><textarea id="imgScene${i}" rows="2" placeholder="ex: équipe AVV, robot assistant..."></textarea>
+      <label class="inline"><input type="checkbox" id="imgNegStd${i}" checked> Négatifs standard</label>
+    </div>
+    <div id="pptBlock${i}" class="hidden">
+      <h4>🧩 PowerPoint – options de la séquence</h4>
+      <div class="row">
+        <div class="col">
+          <label>Layout spécifique (optionnel) :</label>
+          <select id="layoutId${i}"></select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>Title → placeholder_name :</label>
+          <input id="phTitleName${i}" placeholder="ex: ph_title">
+          <label class="small">Title → alias :</label>
+          <select id="phTitleAlias${i}"><option value=""></option><option value="title">title</option></select>
+          <label class="small">Title → idx :</label>
+          <input id="phTitleIdx${i}" type="number" min="0" step="1">
+        </div>
+        <div class="col">
+          <label>Body → placeholder_name :</label>
+          <input id="phBodyName${i}" placeholder="ex: ph_body">
+          <label class="small">Body → alias :</label>
+          <select id="phBodyAlias${i}"><option value=""></option><option value="body">body</option></select>
+          <label class="small">Body → idx :</label>
+          <input id="phBodyIdx${i}" type="number" min="0" step="1">
+        </div>
+        <div class="col">
+          <label>Picture → placeholder_name :</label>
+          <input id="phPicName${i}" placeholder="ex: ph_picture">
+          <label class="small">Picture → alias :</label>
+          <select id="phPicAlias${i}"><option value=""></option><option value="picture">picture</option></select>
+          <label class="small">Picture → idx :</label>
+          <input id="phPicIdx${i}" type="number" min="0" step="1">
+        </div>
+      </div>
+      <div id="aliasHints${i}" class="muted small" style="margin-top:6px;"></div>
+    </div>
+  `;
+  c.appendChild(d);
+
+  const globalImgEnabled = $('enableImages').checked;
+  const chk = $('genImg'+i);
+  const imgBlock = $('imgBlock'+i);
+  chk.disabled = !globalImgEnabled;
+  chk.addEventListener('change', ()=>{ show(imgBlock, chk.checked && $('enableImages').checked); });
+  show(imgBlock, chk.checked && globalImgEnabled);
+
+  const ppt = $('pptBlock'+i);
+  show(ppt, $('enablePowerPoint').checked);
+
+  refreshLayoutOptions(i);
+  refreshAliasHints(i);
+  const sel = $('layoutId'+i);
+  if (sel) sel.addEventListener('change', () => refreshAliasHints(i));
+}
+
+document.getElementById("promptForm").addEventListener("submit", function (e) {
+  e.preventDefault();
+
+  const ai_profile = {
+    reasoning_level: $('reasoningLevel').value,
+    factuality: $('factuality').value,
+    compliance: $('compliance').value,
+    depth: $('depth').value,
+    autonomy: $('autonomy').value,
+    reformulation: $('reformulation').value,
+    uncertainty: $('uncertainty').value
+  };
+
+  const imagesEnabled = $('enableImages').checked;
+  const imgStyleKey = $('imageStyleKey').value;
+  const preset = STYLE_PRESETS[imgStyleKey] || null;
+  const imgFit = $('imageFitSel').value || "contain";
+  const imgBg = $('imageBgSel').value || "transparent";
+  const imgSizeMode = $('imageSizeMode').value || "auto";
+  const imgSizeWH = $('imageSizeWH').value.trim();
+
+  const metadata = {
+    prompt_name: $('promptName').value,
+    objectifPrincipal: $('mainObjective').value,
+    contexte: $('context').value,
+    role: $('globalRole').value
+  };
+  if (imagesEnabled){
+    metadata.image_policy = {
+      concept: $('imageConcept').value,
+      fit: imgFit,
+      style_key: imgStyleKey || "",
+      style_hint: (preset ? preset.style_hint : $('imageStyle').value) || "",
+      background: imgBg,
+      size_mode: imgSizeMode,
+      default_size: imgSizeWH || "",
+      negative_prompt_default: $('imageNegStd').checked ? (preset ? preset.negative : "photo réaliste, grain, watermark, texte, logos, personnages licenciés") : ""
+    };
+  }
+
+  const ppEnabled = $('enablePowerPoint').checked;
+  const output = { ai_profile, metadata };
+  if (ppEnabled){
+    const template = {};
+    const defaultLayoutId = $('defaultLayoutId').value.trim();
+    if (defaultLayoutId) template.layout_id = defaultLayoutId;
+    output.template = template;
+    if (manifestData && manifestData.template_manifest){
+      output.template_manifest = manifestData.template_manifest;
+    }
+  }
+
+  const timeline = [];
+  for (let i = 1; i <= instructionIndex; i++) {
+    const seq = {
+      sequence: i,
+      action: $('action'+i)?.value || "",
+      format: $('format'+i)?.value || "",
+      exemple: $('example'+i)?.value || "",
+      verifications: $('verif'+i)?.value || ""
+    };
+
+    if (ppEnabled){
+      const layoutVal = $('layoutId'+i)?.value || "";
+      if (layoutVal) seq.layout_id = layoutVal;
+      seq.targets = {
+        title:   { placeholder_name: $('phTitleName'+i).value || "", alias: $('phTitleAlias'+i).value || "", idx: $('phTitleIdx'+i).value ? parseInt($('phTitleIdx'+i).value,10) : null },
+        body:    { placeholder_name: $('phBodyName'+i).value || "",  alias: $('phBodyAlias'+i).value || "",  idx: $('phBodyIdx'+i).value ? parseInt($('phBodyIdx'+i).value,10) : null },
+        picture: { placeholder_name: $('phPicName'+i).value || "",   alias: $('phPicAlias'+i).value || "",   idx: $('phPicIdx'+i).value ? parseInt($('phPicIdx'+i).value,10) : null }
+      };
+    }
+
+    const localGen = $('genImg'+i) && $('genImg'+i).checked && imagesEnabled;
+    seq.generate_image = !!localGen;
+    if (localGen){
+      const imgStyleKeyLocal = $('imgStyleKey'+i).value || imgStyleKey;
+      const p = STYLE_PRESETS[imgStyleKeyLocal] || preset || null;
+      const fit = $('imgFit'+i).value || imgFit;
+      const bg  = $('imgBg'+i).value || imgBg;
+      const sizeMode = $('imgSizeMode'+i).value || imgSizeMode;
+      let sizeWH = $('imgSizeWH'+i).value.trim();
+      if (sizeMode === "auto" && ppEnabled){
+        const lname = seq.layout_id || (output.template && output.template.layout_id) || "";
+        const tpic = seq.targets ? seq.targets.picture : null;
+        if (lname && tpic){
+          const autoWH = computeAutoSize(lname, tpic.placeholder_name || "", tpic.alias || "picture", tpic.idx);
+          if (autoWH) sizeWH = autoWH;
+        }
+      }
+      const neg = $('imgNegStd'+i).checked ? (p ? p.negative : (metadata.image_policy?.negative_prompt_default || "")) : "";
+      const scene = $('imgScene'+i).value || metadata.image_policy?.concept || "";
+      const styleTokens = p ? p.tags.join(", ") : (metadata.image_policy?.style_hint || "");
+      const prompt = [scene, styleTokens].filter(Boolean).join("; ");
+      seq.image = {
+        prompt,
+        negative_prompt: neg,
+        size: sizeWH || (sizeMode==="custom" ? (metadata.image_policy?.default_size || "") : ""),
+        fit: fit,
+        transparent_background: (bg === "transparent"),
+        style_key: imgStyleKeyLocal || "",
+        style_hint: p ? p.style_hint : (metadata.image_policy?.style_hint || "")
+      };
+    }
+
+    timeline.push(seq);
+  }
+  output.timeline = timeline;
+
+  latestJson = JSON.stringify(output, null, 2);
+  $('jsonPreview').textContent = latestJson;
+});
+
+document.getElementById('copyJsonBtn').addEventListener('click', async () => {
+  if (!latestJson) { alert("Génère d'abord un prompt."); return; }
+  try {
+    await navigator.clipboard.writeText(latestJson);
+    const s = document.getElementById('copyStatus');
+    s.textContent = " Copié";
+    setTimeout(() => { s.textContent = ""; }, 1200);
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = latestJson;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); 
+          document.getElementById('copyStatus').textContent = " Copié";
+          setTimeout(() => { document.getElementById('copyStatus').textContent = ""; }, 1200);
+    } catch { alert("Impossible de copier automatiquement."); }
+    finally { document.body.removeChild(ta); }
+  }
+});
+
+
+function downloadJSON() {
+  if (!latestJson) return alert("Rien à sauvegarder.");
+  const blob = new Blob([latestJson], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "prompt-" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+}
+
+function downloadTXT() {
+  if (!latestJson) return alert("Génère d'abord un prompt.");
+  const obj = JSON.parse(latestJson);
+  let txt = `🎯 Objectif : ${obj.metadata.objectifPrincipal}\n`;
+  txt += `📂 Contexte : ${obj.metadata.contexte}\n`;
+  txt += `👤 Rôle : ${obj.metadata.role}\n`;
+  const ip = obj.metadata.image_policy || null;
+  if (ip){
+    txt += `🖼️ Image défaut : concept="${ip.concept||''}", style="${ip.style_key||ip.style_hint||''}", fit=${ip.fit||''}, bg=${ip.background||''}, size_mode=${ip.size_mode||''} ${ip.default_size?("("+ip.default_size+")"):""}\n`;
+  } else {
+    txt += `🖼️ Image : désactivée\n`;
+  }
+  if (obj.template || obj.template_manifest){
+    txt += `\n📊 PowerPoint :\n`;
+    if (obj.template && obj.template.layout_id) txt += `   - Layout par défaut : ${obj.template.layout_id}\n`;
+    if (obj.template_manifest){
+      const tm = obj.template_manifest;
+      txt += `   - Manifeste: ${tm.file || '(fichier non spécifié)'}\n`;
+      const layouts = Object.keys(tm.layouts||{});
+      txt += `   - Layouts: ${layouts.join(', ')}\n`;
+    }
+  } else {
+    txt += `\n📊 PowerPoint : désactivé\n`;
+  }
+  txt += `\n📋 Instructions :\n`;
+  for (const s of obj.timeline) {
+    txt += `\n🔹 ${s.sequence}. ${s.action}\n`;
+    txt += `   ➤ Format : ${s.format}\n`;
+    txt += `   ➤ Exemple : ${s.exemple}\n`;
+    txt += `   ➤ Vérifications : ${s.verifications}\n`;
+    txt += `   ➤ Image IA : ${s.generate_image ? "Oui" : "Non"}\n`;
+    if (s.generate_image && s.image){
+      const im = s.image;
+      txt += `      • prompt="${im.prompt}"\n`;
+      txt += `      • fit=${im.fit}, bg=${im.transparent_background?'transparent':'opaque'}, size=${im.size||'(auto)'}\n`;
+      txt += `      • style=${im.style_key||im.style_hint||''}\n`;
+      if (im.negative_prompt) txt += `      • négatifs="${im.negative_prompt}"\n`;
+    }
+    if (s.layout_id || s.targets){
+      txt += `   ➤ PPT:\n`;
+      if (s.layout_id) txt += `      • layout_id : ${s.layout_id}\n`;
+      if (s.targets){
+        const t = s.targets;
+        const line = (k,v)=>`      • ${k} → name="${v.placeholder_name||''}" alias="${v.alias||''}" idx=${v.idx===null||v.idx===undefined?'':v.idx}\n`;
+        txt += line('title', t.title || {});
+        txt += line('body',  t.body  || {});
+        txt += line('picture', t.picture || {});
+      }
+    }
+  }
+  const blob = new Blob([txt], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "prompt-" + new Date().toISOString().slice(0,10) + ".txt";
+  a.click();
+}
+</script>
+
+</body>
+</html>
